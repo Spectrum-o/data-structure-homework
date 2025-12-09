@@ -1,0 +1,1153 @@
+%颜色没有大调整，跟校徽色不符
+%只在参考的两个模板上改动了颜色，以及解决了参考文献的问题。
+%[1]中所附的一些排版内容在本模板中删去，有需要可以从[1][2]中学习。
+\documentclass{beamer}
+\usepackage{ctex, hyperref}
+\usepackage[T1]{fontenc}
+    \documentclass{beamer}
+\usepackage{tikz}
+\usetikzlibrary{positioning, shapes.geometric, backgrounds, fit}
+
+% 定义节点样式
+\tikzset{
+    basic/.style={circle, draw=black, thick, minimum size=7mm, inner sep=0pt, font=\bfseries},
+    clique_node/.style={basic, fill=red!30, draw=red!80!black}, % 团/独立集节点（红）
+    cover_node/.style={basic, fill=blue!30, draw=blue!80!black}, % 顶点覆盖节点（蓝）
+    edge_g/.style={thick, black}, % 原图的边
+    edge_gbar/.style={thick, black!60, dashed} % 补图的边
+}
+%\usepackage{cite}
+% other packages
+\usepackage{latexsym,amsmath,xcolor,multicol,booktabs,calligra}
+\usepackage{biblatex}
+\usepackage{graphicx,listings,stackengine}
+\usefonttheme[onlymath]{serif}%统一字体
+\addbibresource{ref.bib}
+%可以多个bib文件
+\author{钟以楠}
+\title{maximum clique problems}
+\institute{山东大学泰山学堂}
+\date{2025年12月10日}
+\usepackage{Tsinghua}
+\usepackage[ruled,vlined]{algorithm2e}
+
+% defs
+\def\cmd#1{\texttt{\color{red}\footnotesize $\backslash$#1}}
+\def\env#1{\texttt{\color{blue}\footnotesize #1}}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+\definecolor{halfgray}{gray}{0.55}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\bfseries\color{deepblue},
+    emphstyle=\ttfamily\color{deepred},    % Custom highlighting style
+    stringstyle=\color{deepgreen},
+    numbers=left,
+    numberstyle=\small\color{halfgray},
+    rulesepcolor=\color{red!20!green!20!blue!20},
+    frame=shadowbox,
+}
+
+
+\setbeamertemplate{bibliography item}[text]
+
+\begin{document}
+
+\kaishu
+\begin{frame}
+    \titlepage
+    \begin{figure}[htpb]
+        \begin{center}
+            \includegraphics[width=0.3\linewidth]{logo2 .jpg}
+        \end{center}
+    \end{figure}
+\end{frame}
+
+\begin{frame}
+    \tableofcontents[sectionstyle=show,subsectionstyle=show/shaded/hide,subsubsectionstyle=show/shaded/hide]
+\end{frame}
+
+
+\section{问题定义与理论基础}
+
+% Slide 1: 背景与意义
+\begin{frame}{背景与意义}
+    \begin{itemize}
+        \item \textbf{核心地位}：
+            最大团问题 (Maximum Clique Problem, MCP) 是计算复杂性理论中最基础的 NP-hard 问题之一，也是 Karp (1972) 提出的 21 个经典 NPC 问题之一。
+        \item \textbf{广泛应用}：
+            \begin{itemize}
+                \item \textbf{生物信息学}：蛋白质结构比对、基因序列分析。
+                \item \textbf{社交网络}：社区发现、紧密群体识别。
+                \item \textbf{编码理论}：纠错码设计、汉明距离约束。
+            \end{itemize}
+        \item \textbf{挑战性}：
+            不仅精确求解困难，其近似求解也极具挑战性（Inapproximability）。
+    \end{itemize}
+\end{frame}
+
+% Slide 2: 形式化定义
+\begin{frame}{问题定义 (Formal Definition)}
+    \begin{definition}[最大团 Maximum Clique]
+        给定无向图 $G=(V, E)$，团 (Clique) 是顶点集 $V$ 的一个子集 $C \subseteq V$，满足：
+        $$ \forall u, v \in C, u \neq v \implies \{u, v\} \in E $$
+        即 $C$ 中的任意两个顶点都互为邻接点。
+    \end{definition}
+    
+    \vspace{0.5cm}
+    
+    \begin{block}{关键区分}
+        \begin{itemize}
+            \item \textbf{极大团 (Maximal Clique)}：无法通过添加顶点扩展的团（局部极大值）。
+            \item \textbf{最大团 (Maximum Clique)}：基数 $|C|$ 最大的团（全局最大值）。我们定义图 $G$ 的团数为 $\omega(G)$。
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}{核心概念：最大独立集 (MIS)}
+    在讨论等价性之前，我们先定义补图中的对应概念：
+    
+    \vspace{0.5cm}
+
+    \begin{block}{最大独立集 (Maximum Independent Set)}
+        \begin{itemize}
+            \setlength{\itemsep}{10pt} % 增加行间距，让排版更舒朗
+            \item \textbf{定义}：
+            给定无向图 $G=(V,E)$，独立集是顶点集 $S \subseteq V$，其中\textbf{任意两点均不相邻}。
+            $$ \forall u, v \in S, \{u, v\} \notin E $$
+            
+            \item \textbf{直观理解}：
+            一群“互不认识”的人，或者彼此之间没有连边的点。
+            
+            \item \textbf{记号}：
+            其最大基数记为 $\alpha(G)$。
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% --- Slide 2: 最小顶点覆盖定义 ---
+\begin{frame}{核心概念：最小顶点覆盖 (MVC)}
+    这是理解等价性的难点，也是“互补”的关键：
+
+    \vspace{0.5cm}
+
+    \begin{alertblock}{最小顶点覆盖 (Minimum Vertex Cover)}
+        \begin{itemize}
+            \setlength{\itemsep}{10pt}
+            \item \textbf{定义}：
+            顶点集 $K \subseteq V$，使得图中的\textbf{每一条边}至少有一个端点属于 $K$。
+            $$ \forall \{u, v\} \in E, \{u, v\} \cap K \neq \emptyset $$
+            
+            \item \textbf{直观隐喻 (Security Guards)}：
+            想象在路口（顶点）设置安保人员，要求每一条街道（边）都必须处于至少一名安保人员的监控之下。
+            
+            \item \textbf{记号}：
+            其最小基数记为 $\beta(G)$。
+        \end{itemize}
+    \end{alertblock}
+\end{frame}
+
+% --- Slide 3: 证明第一步 ---
+\begin{frame}{等价性证明一：从团到独立集}
+    \textbf{转化核心}：利用 \textbf{补图 (Complement Graph)} $\bar{G}$。
+    
+    \vspace{0.3cm}
+
+    \begin{proof}
+        设 $C \subseteq V$ 是图 $G$ 的一个顶点子集。
+        \begin{itemize}
+            \setlength{\itemsep}{5pt}
+            \item $C$ 是 $G$ 的团 (全连接)
+            \item $\iff \forall u, v \in C$, $u, v$ 在 $G$ 中\textbf{有}边相连
+            \item $\iff \forall u, v \in C$, $u, v$ 在 $\bar{G}$ 中\textbf{无}边相连 (根据定义)
+            \item $\iff C$ 是 $\bar{G}$ 的独立集
+        \end{itemize}
+    \end{proof}
+    
+    \begin{center}
+        \textcolor{blue}{\textbf{结论 1: } $\omega(G) = \alpha(\bar{G})$}
+    \end{center}
+\end{frame}
+
+% --- Slide 4: 证明第二步 ---
+\begin{frame}{等价性证明二：从独立集到顶点覆盖}
+    \textbf{转化核心}：利用 \textbf{集合的补 (Set Complement)} $V \setminus S$。
+
+
+    \vspace{0.2cm}
+
+    \begin{proof}
+        \textbf{($\Rightarrow$)} 设 $S$ 为独立集（内部无边）。
+        \begin{itemize}
+            \item 图中每条边的两个端点，不可能\textbf{都}在 $S$ 中。
+            \item $\implies$ 每条边至少有一个端点在 $S$ 的\textbf{外面} (即 $V \setminus S$)。
+            \item $\implies V \setminus S$ 覆盖了所有的边。
+        \end{itemize}
+        
+        \textbf{($\Leftarrow$)} 反之亦然。要使独立集 $|S|$ 最大，必须使覆盖集 $|V \setminus S|$ 最小。
+    \end{proof}
+
+    \begin{alertblock}{结论 (Final Equivalence)}
+        $$ \omega(G) = \alpha(\bar{G}) = |V| - \beta(\bar{G}) $$
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{最大团、最大独立集与最小顶点覆盖的关系}
+
+\begin{center}
+\resizebox{\textwidth}{!}{ % 自动缩放以适应屏幕
+\begin{tikzpicture}
+
+    %%% --- 左图：原图 G --- %%%
+    \begin{scope}[local bounding box=GraphG]
+        \node[above] at (1.5, 3.5) {\Large 原图 $G$: \textcolor{red}{最大团}};
+        
+        % 定义节点位置
+        \node[clique_node] (A) at (90:1.5) {A};
+        \node[clique_node] (B) at (210:1.5) {B};
+        \node[clique_node] (C) at (330:1.5) {C};
+        \node[basic] (D) at (2.5, 2) {D};
+        \node[basic] (E) at (-2.5, 2) {E};
+
+        % 绘制最大团的边 (完全连接)
+        \draw[edge_g, ultra thick, red] (A) -- (B);
+        \draw[edge_g, ultra thick, red] (B) -- (C);
+        \draw[edge_g, ultra thick, red] (C) -- (A);
+
+        % 绘制其他边 (噪音边)
+        \draw[edge_g] (A) -- (D);
+        \draw[edge_g] (B) -- (E);
+        \draw[edge_g] (C) -- (D);
+    \end{scope}
+
+    %%% --- 右图：补图 G_bar --- %%%
+    \begin{scope}[xshift=8cm, local bounding box=GraphGbar]
+        \node[above] at (1.5, 3.5) {\Large 补图 $\bar{G}$: \textcolor{red}{MIS} 与 \textcolor{blue}{MVC}};
+
+        % 相同的位置，但含义不同
+        \node[clique_node] (A2) at (90:1.5) {A};
+        \node[clique_node] (B2) at (210:1.5) {B};
+        \node[clique_node] (C2) at (330:1.5) {C};
+        \node[cover_node] (D2) at (2.5, 2) {D}; % 属于 MVC
+        \node[cover_node] (E2) at (-2.5, 2) {E}; % 属于 MVC
+
+        % 补图的边：原图没有的边，这里都有
+        % 原图 A-B, B-C, C-A 有边 -> 这里无边 (独立集!)
+        % 原图 A-E 无边 -> 这里有边
+        \draw[edge_gbar] (A2) -- (E2);
+        % 原图 B-D 无边 -> 这里有边
+        \draw[edge_gbar] (B2) -- (D2);
+        % 原图 C-E 无边 -> 这里有边
+        \draw[edge_gbar] (C2) -- (E2);
+        % 原图 D-E 无边 -> 这里有边
+        \draw[edge_gbar] (D2) -- (E2);
+        % 原图 A-D 有边 -> 这里无边
+        % 原图 B-E 有边 -> 这里无边
+        % 原图 C-D 有边 -> 这里无边
+        
+        % 所有的边至少有一个端点是蓝色的 (D或E) -> 这就是点覆盖
+    \end{scope}
+
+    % 分隔线
+    \draw[dotted, thick, gray] (4, -2) -- (4, 4);
+
+    % 说明文字
+    \node[anchor=north, align=center, font=\small] at (1.5, -2) {
+        \textbf{最大团} (Max Clique) \\
+        $\{A, B, C\}$ 两两相连
+    };
+
+    \node[anchor=north, align=center, font=\small] at (9.5, -2) {
+        \textbf{最大独立集} (MIS): \textcolor{red}{$\{A, B, C\}$} (互不相连) \\
+        \textbf{最小点覆盖} (MVC): \textcolor{blue}{$\{D, E\}$} (覆盖所有虚线边) \\
+        \textit{注: MVC = $V \setminus$ MIS}
+    };
+
+\end{tikzpicture}
+}
+\end{center}
+
+\end{frame}
+
+% Slide 4: 计算复杂性 - 展示理论深度
+\begin{frame}{计算复杂性 (Computational Complexity)}
+    \begin{itemize}
+        \item \textbf{NP-Complete}: 
+        判定是否存在大小为 $k$ 的团是 NPC 问题 (Karp, 1972)。
+        
+        \item \textbf{不可近似性 (Inapproximability)}:
+        \begin{itemize}
+            \item 除非 $P=NP$，否则不存在多项式时间近似方案 (PTAS)。
+            \item Håstad (1999) 证明：对于任意 $\epsilon > 0$，在 $n^{1-\epsilon}$ 因子内近似 MCP 是 NP-hard 的。
+        \end{itemize}
+        
+        \item \textbf{参数复杂性}:
+        MCP 是 $W[1]$-complete 的，这意味着即使固定参数 $k$，也不太可能存在 $f(k) \cdot n^{O(1)}$ 的 FPT 算法。
+    \end{itemize}
+\end{frame}
+
+
+\section{精确算法}
+% --- Slide: 基于 DP 思想的算法 (Cliquer) ---
+
+% --- Slide 1: 基础 B&B 框架 ---
+% !!! 务必在导言区 (Preamble) 确保引入了以下宏包 !!!
+% \usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+% \usepackage{xcolor}
+
+% --- Slide 1.1: 基础框架 - 状态定义 ---
+\begin{frame}{基础框架 ：状态定义}
+    几乎所有现代精确算法都基于通用的分支定界 (Branch-and-Bound) 框架。
+    
+    \vspace{0.3cm} % 稍微减小一点间距，防止内容太挤
+
+    \begin{block}{核心递归状态 \texttt{Clique(C, P)}}
+        算法维护两个关键集合和一个全局最优解：
+        \begin{itemize}
+            \setlength{\itemsep}{10pt} % 列表间距
+            \item \textbf{当前团 $C$ (Current Clique)}：\\
+            递归路径上已经确定选入团的顶点集合。
+            
+            \item \textbf{候选集 $P$ (Candidate Set)}：\\
+            $P = \{v \in V \setminus C \mid \forall u \in C, (u,v) \in E\}$。\\
+            即：剩余顶点中，与 $C$ 中\textbf{所有}顶点都相连的点集。
+            
+            \item \textbf{当前最优解 $C^*$ (Incumbent)}：\\
+            搜索过程中发现的最大的团，用于剪枝比较。
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+% --- Slide 1.2: 基础框架 - 算法流程 ---
+\begin{frame}{基础框架 ：Carraghan \& Pardalos (CP) 算法}
+    % 定义全局变量关键字
+    \SetKwInput{KwGlobal}{Global} 
+    
+    \begin{columns}[T] % T 表示顶部对齐
+        % --- 左栏：文字描述 ---
+        \begin{column}{0.4\textwidth}
+            \vspace{0.5cm} % 稍微下沉一点
+            \begin{itemize}
+                \item \textbf{CP 算法 (1990)} 
+                \item DFS 搜索的经典实现。
+                \item 核心思想是利用\textcolor{red}{剪枝}策略减少搜索空间。
+            \end{itemize}
+        \end{column}
+        
+        % --- 右栏：算法代码 ---
+        \begin{column}{0.6\textwidth}
+            \begin{algorithm}[H]
+                \footnotesize  % 整体缩小字号
+                \SetAlgoLined
+                \DontPrintSemicolon
+                % 调整行距，如果还挤可以设为 0.9
+                \renewcommand{\baselinestretch}{1.0} 
+                
+                \KwIn{当前团 $C$, 候选集 $P$}
+                \KwGlobal{全局最优解 $C^*$}
+                
+                \BlankLine % 自动的空行，比 vspace 好
+                
+                \tcp{\textcolor{red}{1. 剪枝 (Bounding)}}
+                \If{$|C| + |P| \le |C^*|$}{
+                    \Return \tcp*[r]{\textcolor{gray}{无法更新最优解}} 
+                }
+                
+                \tcp{\textcolor{blue}{2. 更新 (Update)}}
+                \If{$|C| > |C^*|$}{
+                    $C^* \leftarrow C$
+                }
+                
+                \tcp{\textcolor{teal}{3. 分支 (Branching)}}
+                \While{$P \neq \emptyset$}{
+                    Pick $v \in P$, $P \leftarrow P \setminus \{v\}$\;
+                    \texttt{Clique}($C \cup \{v\}, P \cap N(v)$)\;
+                }
+                
+                \caption{CP Algorithm Structure}
+            \end{algorithm}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --- Slide 2: 剪枝进阶：着色上界 ---
+% --- Slide 1: 理论与直觉 ---
+\begin{frame}{核心剪枝 ：基于着色的上界原理}
+    
+    % 使用 Block 强调核心定理
+    \begin{alertblock}{Theorem: Weak Duality of Graphs}
+        对于任意图 $G$，其最大团大小 $\omega(G)$ 总是小于等于其色数 $\chi(G)$：
+        $$ \omega(G) \le \chi(G) $$
+    \end{alertblock}
+
+    \vspace{0.3cm}
+
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{blue}{直观理解 (Intuition)}}
+            \begin{itemize}
+                \item \textbf{团的性质}：团 $C$ 中的任意两个顶点都是相连的。
+                \item \textbf{着色约束}：相连的顶点不能染相同颜色。
+                \item \textbf{鸽巢原理}：如果你有一个大小为 $k$ 的团，你至少需要 $k$ 种不同的颜色来区分它们。
+            \end{itemize}
+        \end{column}
+        
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{teal}{为什么有效？}}
+            \begin{itemize}
+                \item 相比于简单的 $|P|$ 上界，色数利用了图的\textbf{结构信息}。
+                \item 颜色类 (Color Class) 实际上是一个\textbf{独立集} (Independent Set)。
+                \item 一个团在每个独立集中至多只能选取 1 个顶点。
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.4cm}
+    \centering
+    \footnotesize{\textcolor{gray}{结论：如果我们能用 $k$ 种颜色给候选集 $P$ 合法着色，那么 $P$ 中最多只能选出 $k$ 个顶点加入团。}}
+\end{frame}
+
+% --- Slide 2: 工程实现与贪心策略 ---
+\begin{frame}{核心剪枝 ：贪心着色与工程实现}
+    
+    \textbf{挑战}：计算精确的 $\chi(G[P])$ 也是 NP-hard 问题。\\
+    \textbf{对策}：使用\textbf{贪心着色 (Greedy Coloring)} 计算近似值。
+    
+    \vspace{0.2cm}
+
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \begin{algorithm}[H]
+                \scriptsize
+                \SetAlgoLined
+                \DontPrintSemicolon
+                \KwIn{候选集 $P$}
+                \KwOut{颜色数 $k$}
+                $k \leftarrow 0$\;
+                \While{$P \neq \emptyset$}{
+                    $k \leftarrow k + 1$\;
+                    $I \leftarrow \text{MaxIndependentSet}(P)$ \tcp*[r]{贪心取}
+                    \textcolor{gray}{// 将颜色 $k$ 分配给 $I$ 中的点}\;
+                    $P \leftarrow P \setminus I$\;
+                }
+                \Return $k$
+                \caption{Greedy Coloring Heuristic}
+            \end{algorithm}
+        \end{column}
+
+        \begin{column}{0.4\textwidth}
+            \vspace{0.2cm}
+            \textbf{剪枝逻辑 (Pruning Logic)}:
+            
+            \vspace{0.2cm}
+            Let $k_{greedy}$ be the result.
+            $$ \omega(G[P]) \le \chi(G[P]) \le k_{greedy} $$
+            
+            \vspace{0.1cm}
+            \begin{alertblock}{剪枝条件}
+                \centering
+                If $|C| + k_{greedy} \le |C^*|$ \\
+                $\implies$ \textbf{Prune / Return}
+            \end{alertblock}
+            
+            \vspace{0.1cm}
+            \footnotesize{\textbf{复杂度}：通常为 $O(|P| + |E_P|)$，权衡了计算耗时与剪枝效果。}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --- Slide 3: 里程碑算法 MCQ ---
+\begin{frame}{ MCQ 算法详解 ：着色与定界 (Numbering)}
+    MCQ 的核心是一个名为 \texttt{NUMBER} 的过程。它不只是简单的排序，而是通过贪心着色计算每个点在当前子图中的\textbf{最大潜力}。
+    
+    \vspace{0.2cm}
+    
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \begin{algorithm}[H]
+                \scriptsize
+                \SetAlgoLined
+                \DontPrintSemicolon
+                \KwIn{候选集 $P$}
+                \KwOut{排序后的点集 $\{v_1, \dots, v_k\}$ 及各点色号}
+                
+                $i \leftarrow 1$, $max\_color \leftarrow 0$\;
+                \While{$P \neq \emptyset$}{
+                    Pick $v \in P$ (e.g., max degree in $P$)\;
+                    \tcp{给 v 分配最小可用颜色}
+                    $k \leftarrow \min \{c \ge 1 : c \notin \text{used\_colors}(N(v) \cap P)\}$\;
+                    $color[v] \leftarrow k$\;
+                    $P \leftarrow P \setminus \{v\}$, \textbf{push} $v$ to $Stack$\;
+                    \If{$k > max\_color$}{ $max\_color \leftarrow k$ }
+                }
+                \caption{Procedure NUMBER(P)}
+            \end{algorithm}
+        \end{column}
+        
+        \begin{column}{0.42\textwidth}
+            \small
+            \textbf{过程解析}：
+            \begin{itemize}
+                \item \textbf{动态着色}：在每一层递归中，我们都对当前的 $P$ 重新着色。
+                \item \textbf{颜色即上界}：
+                这意味着包含 $v$ 的最大团，在当前剩余的 $P$ 中，最多还能再选 $color[v]-1$ 个点。
+                \item \textbf{结果}：得到一个有序序列 $v_1, v_2, \dots$（栈的弹出顺序），通常颜色号大的点排在后面。
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{ MCQ 算法详解 ：递归与分支 (EXPAND)}
+    % 将定义移到外面，节省 algorithm 环境内部空间
+    \small \textbf{Input:} $P$ \quad \textbf{Global:} $C, C^*$
+    
+    % 极度压缩垂直间距
+    \setlength{\textfloatsep}{0pt}
+    \setlength{\intextsep}{0pt} 
+
+    \begin{algorithm}[H]
+        \scriptsize % 字体维持小号
+        \renewcommand{\baselinestretch}{0.85} % 【关键】强制压缩行距
+        \SetAlgoLined
+        \DontPrintSemicolon
+        
+        \textbf{Procedure} \texttt{EXPAND}($P$) \;
+        
+        $\{v_1, \dots, v_k\} \leftarrow \texttt{NUMBER}(P)$ \;
+        
+        \BlankLine
+        
+        \For{$i \leftarrow k$ \textbf{downto} $1$}{
+            $v \leftarrow v_i$ \;
+            
+            % 【关键】使用 \lIf 将判断和返回写在同一行
+            \lIf{$|C| + color[v] \le |C^*|$}{ \Return } 
+            
+            \tcp{3. 递归与回溯}
+            $P_{new} \leftarrow P \cap N(v)$ \;
+            
+            \If{$P_{new} = \emptyset$}{
+                % 【关键】单行写法，省去3行空间
+                \lIf{$|C| + 1 > |C^*|$}{ $C^* \leftarrow C \cup \{v\}$ }
+            }
+            \Else{
+                \texttt{EXPAND}($P_{new}$) \;
+            }
+            
+            $P \leftarrow P \setminus \{v\}$ \;
+        }
+    \end{algorithm}
+    
+    \vspace{0.1cm}
+    \footnotesize
+    \begin{itemize}
+        \item \textbf{单行剪枝}：一旦 `color[v]` 降到阈值以下，循环直接结束（因为后续点颜色更小）。
+        \item \textbf{基准情况}：当 $P_{new}$ 为空时，尝试更新全局最优解 $C^*$。
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{MCQ 算法详解 ：原理证明与工程优化}
+    \small % 整体缩小字号
+    
+    \begin{columns}[T] % T 表示顶部对齐
+        % --- 左栏：数学原理 ---
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{blue}{1. 为什么 Color Bound 有效？}}
+            \begin{itemize}
+                \item \textbf{独立集性质}：着色本质上是将图划分为若干个独立集（颜色类）。
+                \item \textbf{限制}：一个团在每个独立集中至多包含 1 个顶点。
+                \item \textbf{结论}：如果 $P$ 能被 $k$ 种颜色着色，则 $\omega(P) \le k$。
+            \end{itemize}
+
+            \vspace{0.3cm} % 栏内可以稍微空一点，不影响整体
+
+            \textbf{\textcolor{teal}{2. 逆序分支的数学意义}}
+            \begin{itemize}
+                \item 按 $color[v]$ 降序搜索 ($k \to 1$)。
+                \item \textbf{快速收敛}：$color[v]$ 是当前分支的“硬上限”。随着循环进行，上限迅速下降。
+                \item \textbf{早停}：一旦上限跌破 $|C^*| - |C|$，循环立即终止。
+            \end{itemize}
+        \end{column}
+        
+        % --- 右栏：工程实现 ---
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{red}{3. 工程瓶颈：集合求交}}
+            \begin{itemize}
+                \item 算法中最频繁的操作是计算新候选集：
+                $$ P_{new} \leftarrow P \cap N(v) $$
+                \item 在稠密图中，这是 $O(N)$ 的操作。
+            \end{itemize}
+
+            \vspace{0.2cm}
+            
+            \begin{alertblock}{关键优化：Bitset}
+                \footnotesize
+                利用 CPU 位并行特性加速集合运算。
+                \begin{itemize}
+                    \item \textbf{存储}：邻接矩阵用 \texttt{std::bitset} 或 \texttt{unsigned long long[]} 存储。
+                    \item \textbf{运算}：交集变为按位与 (\texttt{\&})。
+                    \item \textbf{效果}：复杂度从 $O(N)$ 降至 $O(N/64)$。
+                \end{itemize}
+                \centering
+                \textit{这是现代最大团求解器 (如 MaxCliqueDyn) 速度提升百倍的基础。}
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --- Slide: 基于 DP 思想的算法 (Cliquer) ---
+\begin{frame}{精确算法：基于 DP 思想的子问题求解}
+    % 顶部引言保持全宽
+    除了着色剪枝，另一类重要方法利用了\textbf{动态规划 (Dynamic Programming)} 的思想来复用计算结果。
+
+    \vspace{0.3cm} % 稍微增加一点标题与内容的间距
+
+    \begin{columns}[T] % T 表示顶部对齐
+        % --- 左栏：定义与策略 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Cliquer 算法 (Östergård, 2002)}
+                \textbf{核心策略}：反向归纳 (Iterative Deepening)
+                \begin{enumerate}
+                    \item 将顶点排序 $v_1, v_2, \dots, v_n$。
+                    \item 定义后缀子图 $S_i = \{v_i, v_{i+1}, \dots, v_n\}$。
+                    \item 定义状态 $c(i)$：\textbf{子图 $S_i$ 中的最大团大小}。
+                \end{enumerate}
+            \end{block}
+        \end{column}
+
+        % --- 右栏：伪代码 ---
+        \begin{column}{0.5\textwidth}
+            % 使用 minipage 有助于控制算法环境的边界，防止浮动问题
+            \begin{algorithm}[H]
+                \footnotesize % 缩小字体以适应半宽
+                % \scriptsize % 如果依然超高，可以改用 \scriptsize
+                \SetAlgoLined
+                \DontPrintSemicolon % 可选：不打印分号，节省视觉杂乱感
+                \KwData{顺序 $i = n \dots 1$}
+                $c(n) = 1$ \;
+                \For{$i = n-1$ \KwTo $1$}{
+                    在 $S_i$ 找含 $v_i$ 最大团 $C_{new}$ \;
+                    \tcp{利用 $c(i+1)$ 剪枝}
+                    \If{$|Curr| + c(i+1) \le |Best|$}{
+                        Prune (剪枝) \;
+                    }
+                    $c(i) = \max(|C_{new}|, c(i+1))$ \;
+                }
+                \caption{Östergård's Approach}
+            \end{algorithm}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm}
+
+    % 底部注释保持全宽
+    \centering
+    \footnotesize{\textit{注：这虽非传统 $O(2^n)$ 状压 DP，但利用了已解子问题 $c(i+1)$ 来加速当前问题 $c(i)$ 的求解。}}
+\end{frame}
+
+% --- Slide 4: 现代优化技术 ---
+\begin{frame}{现代优化：位并行与重着色}
+    在 $N \approx 100 \sim 4000$ 的稠密图上，常数级优化至关重要。
+    
+    \vspace{0.3cm}
+
+    \begin{itemize}
+        \item \textbf{位并行 (Bit-parallelism) - BB-MaxClique}：
+        \begin{itemize}
+            \item \textbf{思路}：利用 CPU 的 64 位寄存器 (或 SIMD) 存储邻接矩阵。
+            \item \textbf{操作}：集合求交集 $P \cap N(v)$ 转化为位运算 \texttt{P \& N[v]}。
+            \item \textbf{效果}：相比传统数组实现，速度提升 10-30 倍，特别适合稠密图。
+        \end{itemize}
+        
+        \vspace{0.2cm}
+
+        \item \textbf{重着色 (Recoloring) - MCS}：
+        \begin{itemize}
+            \item \textbf{痛点}：贪心着色可能不准，导致界不够紧。
+            \item \textbf{策略}：尝试将某些点的颜色“修复”到更小的颜色类中。如果能成功减少总色数，就能触发更多剪枝。
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\section{启发式算法与代数视角}
+
+\begin{frame}{代数建模 ：离散视角 (Integer Programming)}
+    \footnotesize % 全局小字号
+    \setlength{\abovedisplayskip}{3pt} % 压缩公式上方间距
+    \setlength{\belowdisplayskip}{3pt} % 压缩公式下方间距
+    \setlength{\textfloatsep}{0pt}
+
+    最大团问题最自然的建模是基于补图的\textbf{独立集}约束 (Nemhauser \& Trotter, 1975)。
+
+    % 直接展示公式，不用 Block 占用额外边距
+    \begin{center}
+        \fcolorbox{black}{gray!10}{
+            \parbox{0.9\textwidth}{
+                \centering
+                Maximize \ $|C| = \sum x_i$ \quad s.t. \ $x_i + x_j \le 1, \ \forall \{i,j\} \notin E, \ x \in \{0,1\}^n$
+            }
+        }
+    \end{center}
+
+    \begin{columns}[T]
+        % --- 左栏：几何含义 ---
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{blue}{1. 约束含义}}
+            \begin{itemize}
+                \setlength{\itemsep}{1pt} % 列表项紧贴
+                \item $\{i,j\} \notin E \implies$ $i, j$ 不相连。
+                \item 团要求两两相连，故不连通的对子中\textbf{至多选一个}。
+                \item 这等价于求补图 $\bar{G}$ 的最大独立集。
+            \end{itemize}
+        \end{column}
+        
+        % --- 右栏：松弛缺陷 ---
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{red}{2. 线性松弛 (LP Relaxation)}}
+            \begin{itemize}
+                \setlength{\itemsep}{1pt}
+                \item 若松弛为 $x_i \in [0,1]$，会出现巨大的 Integrality Gap。
+                \item \textit{例}：$C_5$ (五边形)，$\omega(G)=2$。
+                \item LP 解可取全 $0.5$，目标值 $2.5$。
+                \item \textbf{后果}：直接用 LP Solver 做 Branch \& Bound 效率极低。
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% --- Slide 4.1: 代数建模 ---
+\begin{frame}{代数建模 ：连续视角 (Motzkin-Straus)}
+    \footnotesize
+    \setlength{\abovedisplayskip}{2pt}
+    \setlength{\belowdisplayskip}{2pt}
+
+    1965 年，Motzkin-Straus 建立了组合优化与连续优化的桥梁。
+    
+    % 手动绘制高亮框，比 alertblock 省空间
+    \vspace{0.1cm}
+    \begin{center}
+        \fcolorbox{red}{red!5}{
+            \parbox{0.95\textwidth}{
+                \textbf{Theorem:} 在标准单纯形 $\Delta = \{x \in \mathbb{R}^n \mid \sum x_i = 1, x_i \ge 0\}$ 上最大化 $f(x) = x^T A x$。若最大值为 $f^*$，则：
+                $$ \omega(G) = \frac{1}{1 - f^*} \iff f^* = 1 - \frac{1}{\omega(G)} $$
+            }
+        }
+    \end{center}
+    \vspace{0.1cm}
+
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{\textcolor{teal}{直观推导 (Intuition)}}
+            \begin{itemize}
+                \setlength{\itemsep}{1pt} 
+                \item 假设团 $C$ 大小为 $k$，我们在 $C$ 上\textbf{均匀分配}概率。
+                \item 令 $x_i = 1/k$ (若 $i \in C$)，否则 $0$。
+                \item 代入 $f(x) = \sum A_{ij} x_i x_j$。
+            \end{itemize}
+        \end{column}
+        
+        \begin{column}{0.48\textwidth}
+            \textbf{\textcolor{teal}{计算过程}}
+            \begin{itemize}
+                \setlength{\itemsep}{1pt}
+                \item 团内有 $k(k-1)$ 条有向边（$A_{ij}=1$）。
+                \item 每一项贡献 $(1/k) \cdot (1/k) = 1/k^2$。
+                \item 总和：$k(k-1) \times \frac{1}{k^2} = 1 - \frac{1}{k}$。
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.2cm}
+    \centering
+    \scriptsize \fcolorbox{gray}{white}{结论：团越大 ($k \uparrow$) $\implies$ 函数值越高 ($f \to 1$)}
+\end{frame}
+
+
+% --- Slide 4.2: 求解困境 ---
+\begin{frame}{数学困境 ：非凸性的本质 (Non-Convexity)}
+    \footnotesize % 1. 缩小字号
+    试图最大化 $f(x) = x^T A x$ ($x \in \Delta$) 时，我们将面临极不友好的几何性质。
+
+    % 2. 使用 alertblock 强调数学性质
+    \begin{alertblock}{1. 谱性质：不定矩阵 (Indefinite Matrix)}
+        对于任意非平凡图，邻接矩阵 $A$ 既非正定也非半正定。
+        \begin{itemize}
+            \setlength{\itemsep}{1pt} % 让列表更紧凑
+            \item 这意味着特征值 $\lambda$ \textbf{有正有负}。
+            \item 导致优化曲面呈现复杂的“马鞍面”特征，而非碗状。
+        \end{itemize}
+    \end{alertblock}
+
+    % 3. 使用 block 解释后果
+    \begin{block}{2. 几何后果：崎岖的优化地形}
+        由于矩阵不定，目标函数 $f(x)$ \textbf{非凸非凹}，导致：
+        \begin{itemize}
+            \setlength{\itemsep}{2pt}
+            \item \textbf{局部陷阱}：空间中充满指数级数量的\textbf{局部极大值}。
+            \item \textbf{致命的对应关系}：
+            $$ \text{局部极值} \iff \text{\textcolor{blue}{极大团 (Maximal)}} $$
+            $$ \text{全局极值} \iff \text{\textcolor{red}{最大团 (Maximum)}} $$
+            \item \textbf{结论}：简单的梯度上升只能带你找到“极大团”，几乎不可能翻越山岭找到“最大团”。
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+
+\begin{frame}{数学困境 ：微积分与线性代数的失效}
+    \small
+    既然函数性质不好，标准数学工具的表现如何？
+
+    \vspace{0.2cm}
+
+    \begin{columns}[T]
+        % --- 左栏：硬核数学分析 ---
+        \begin{column}{0.55\textwidth}
+            \textbf{1. 梯度上升 (Gradient Ascent)}
+            \begin{itemize}
+                \item 梯度 $\nabla f(x) = 2Ax$ 指向当前增长最快的方向。
+                \item \textbf{缺陷}：对于多峰函数，梯度上升是“短视”的。它会迅速收敛到最近的极大团（Local Optima），然后停滞不前。
+            \end{itemize}
+            
+            \vspace{0.2cm}
+            
+            \textbf{2. 谱分析 (Spectral Analysis)}
+            \begin{itemize}
+                \item \textbf{Wilf Bound}: $\omega(G) \le \lambda_{max} + 1$。
+                \item \textbf{缺陷}：这只是一个\textbf{上界}。特征向量对应的是实数域的最优解，很难直接映射回离散的 0/1 团结构。
+            \end{itemize}
+        \end{column}
+        
+        % --- 右栏：直观比喻 ---
+        \begin{column}{0.4\textwidth}
+            \vspace{0.3cm}
+            \begin{beamerboxesrounded}[shadow=true]{直观理解：登山悖论}
+                \centering \footnotesize
+                想象一片连绵起伏的山脉：
+                \vspace{0.1cm}
+                \begin{itemize}
+                    \item \textbf{极大团} = 无数个小山头。
+                    \item \textbf{最大团} = 珠穆朗玛峰。
+                \end{itemize}
+                \vspace{0.1cm}
+                微积分（梯度）就像\textbf{蒙着眼的登山者}，只能感知脚下的坡度。他大概率会爬上家门口的小土坡，然后以为自己到了最高点。
+            \end{beamerboxesrounded}
+            
+            \vspace{0.3cm}
+            \centering
+            \fcolorbox{red}{white}{\small $\therefore$ 必须引入\textbf{扰动}与\textbf{跳跃} (启发式)}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+% --- Slide 4.3: 启发式策略分类 ---
+\begin{frame}{现代启发式框架 ：罚函数策略 (k-fixed Penalty)}
+    \footnotesize
+    \setlength{\textfloatsep}{0pt}
+    
+    这类算法（如 NuMVC, FastStep）将优化问题转化为一系列\textbf{判定问题}：能否找到大小为 $k$ 的团？
+    
+    \vspace{0.1cm}
+
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{1. 核心机制：允许“犯错”}
+                \begin{itemize}
+                    \setlength{\itemsep}{1pt}
+                    \item \textbf{状态定义}：
+                    搜索空间包含非团子图。我们在 $V$ 中任选 $k$ 个点作为集合 $S$。
+                    \item \textbf{能量函数 (Cost Function)}：
+                    $$ f(S) = |\{(u,v) \in S \times S \mid (u,v) \notin E\}| $$
+                    即 $S$ 中缺失边的数量（Missing Edges）。
+                    \item \textbf{目标}：通过局部调整使得 $f(S) = 0$。
+                \end{itemize}
+            \end{block}
+        \end{column}
+        
+        \begin{column}{0.48\textwidth}
+            \begin{alertblock}{2. 深度直觉：填海造陆}
+                \begin{itemize}
+                    \setlength{\itemsep}{1pt}
+                    \item \textbf{困境}：合法团之间往往被“非团结构”隔开（像海洋隔开群岛）。如果只允许走合法团，很容易卡死。
+                    \item \textbf{策略}：罚函数允许算法暂时进入“非法区域”（海里），以此为桥梁走到另一个更好的团。
+                    \item \textbf{Configuration Checking}：为了防止在海里迷路（循环震荡），必须引入禁忌机制 (Tabu)。
+                \end{itemize}
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{现代启发式框架 ：合法策略 (Legal Strategy)}
+    \footnotesize
+    这一流派始终维护当前解 $C$ 为\textbf{合法团}。其算子设计深受连续优化梯度 ($\nabla f = 2Ax$) 的启发。
+
+    \vspace{0.1cm}
+
+    \begin{block}{三大核心算子 (Operators)}
+        \begin{description}
+            \setlength{\itemsep}{3pt}
+            \item[\textbf{1. Add (扩展)}] 
+            若存在点 $v$ 与 $C$ 全连通，直接加入。
+            \textit{(对应贪心上升)}
+            
+            \item[\textbf{2. Swap (交换) - 梯度的离散化身}] 
+            当无法 Add 时（陷入极大团），我们需要换点。
+            \begin{itemize} \scriptsize
+                \item \textbf{如何选点？} 计算候选集中每个点 $v$ 的权重（通常基于 $x^T A x$ 的梯度增益）。
+                \item \textbf{操作}：踢出一个“最差”的点，换入一个“潜力最大”的点。
+                \item \textbf{意义}：这是在离散空间中模拟沿着梯度方向修正搜索路径。
+            \end{itemize}
+
+            \item[\textbf{3. Drop (扰动)}] 
+            如果 Swap 多次后仍无进展，强制随机丢弃 $C$ 中部分节点。
+            \textit{(对应跳出局部最优 Basin)}
+        \end{description}
+    \end{block}
+    
+    \centering
+    \scriptsize \textcolor{blue}{总结：合法策略更像是一个“带随机扰动的爬山算法”。}
+\end{frame}
+
+\begin{frame}{现代启发式框架 ：进化算法的陷阱与出路}
+    \footnotesize
+    
+    在最大团问题 (MCP) 上，纯粹的遗传算法 (GA) 往往不如简单的局部搜索。
+    
+    \vspace{0.1cm}
+
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{\textcolor{red}{1. 结构脆弱性与交叉失效}}
+            \begin{itemize}
+                \setlength{\itemsep}{2pt}
+                \item \textbf{核心矛盾}：团是一个\textbf{高内聚}结构。
+                \item \textbf{交叉算子 (Crossover)}：
+                假设父代 $P_1$ 和 $P_2$ 都是团。
+                \item \textbf{语义破坏}：
+                简单的杂交（如各取一半）产生的子代，往往内部极其稀疏，支离破碎。
+                \item \textbf{后果}：
+                子代不再是团，修复它需要耗费巨大计算量。算法退化为随机搜索。
+            \end{itemize}
+        \end{column}
+        
+        \begin{column}{0.45\textwidth}
+            \textbf{\textcolor{teal}{2. 破局：模因算法 (Memetic)}}
+            \begin{itemize}
+                \setlength{\itemsep}{2pt}
+                \item 既然 GA 搜得慢，局部搜索 (LS) 容易卡住，不如结合。
+                \item \textbf{框架}：
+                $$ \text{GA (负责跳跃)} + \text{LS (负责挖掘)} $$
+                \item \textbf{专用重组算子}：
+                现代算法 (如 Map-Elites) 设计了保留团结构的特殊交叉算子，而非简单的基因片段交换。
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm}
+    \centering
+    \fcolorbox{red}{white}{
+        \parbox{0.9\textwidth}{
+            \centering \scriptsize \textbf{Key Insight}: 
+            不要直接套用通用 AI 算法。算法设计必须尊重问题的\textbf{拓扑结构 (Topology)}。
+        }
+    }
+\end{frame}
+
+\section{现实应用}
+
+\begin{frame}{现实应用 ：网络分析与生物计算}
+    \small
+    \setlength{\textfloatsep}{0pt}
+    
+    \begin{columns}[T] % T 表示顶部对齐，互不干扰
+        % --- 左栏：社交网络 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{1. 社交网络 (SNA)}
+                \textbf{场景}：在海量数据中挖掘核心圈层。
+                \begin{itemize}
+                    \setlength{\itemsep}{2pt}
+                    \item \textbf{社区发现}：
+                    寻找高密度的\textbf{Cohesive Subgroups}。
+                    \item \textbf{反恐与风控}：
+                    恐怖组织或黑产团伙通常表现为全连通子图（团）。
+                    \item \textbf{难点}：
+                    图规模极大（百万节点），需结合启发式算法（如 k-core 预处理）进行剪枝。
+                \end{itemize}
+            \end{block}
+        \end{column}
+        
+        % --- 右栏：生物信息 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{2. 生物信息 (Bioinformatics)}
+                \textbf{场景}：分子结构的相似性比对。
+                \begin{itemize}
+                    \setlength{\itemsep}{2pt}
+                    \item \textbf{蛋白质结构预测}：
+                    判断两个蛋白质在空间上是否同构。
+                    \item \textbf{建模手段}：
+                    构建\textbf{对应图 (Correspondence Graph)}。
+                    \begin{itemize} \scriptsize
+                        \item 节点：原子对 $(u, v)$。
+                        \item 边：若距离约束兼容则连线。
+                    \end{itemize}
+                    \item \textbf{目标}：求最大团即求最大公共子结构 (MCS)。
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+\end{frame}
+\begin{frame}{现实应用 ：计算机视觉与信息论}
+    % 1. 使用 footnote size (比 small 更小一点，非常适合双栏内容)
+    \footnotesize 
+    
+    \begin{columns}[T]
+        % --- 左栏：计算机视觉 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{3. 计算机视觉 (CV)}
+                \textbf{场景}：图像匹配与物体识别。
+                \begin{itemize}
+                    % 2. 压缩列表项之间的垂直距离
+                    \setlength{\itemsep}{1pt} 
+                    \item \textbf{特征匹配}：
+                    寻找两幅图中几何一致的特征点集。
+                    \item \textbf{关联图 (Association Graph)}：
+                    \begin{itemize} \scriptsize
+                        \item 节点：假设匹配对 $(u, v)$。
+                        \item 边：若几何约束兼容则连线。
+                    \end{itemize}
+                    \item \textbf{本质}：在含噪图中寻找最大相容子集。
+                \end{itemize}
+            \end{block}
+        \end{column}
+        
+        % --- 右栏：编码理论 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{4. 编码理论 (Coding)}
+                \textbf{场景}：零误差信道传输。
+                \begin{itemize}
+                    \setlength{\itemsep}{1pt}
+                    \item \textbf{纠错设计}：
+                    选一组信号，使任意两个都不会因干扰混淆。
+                    \item \textbf{香农容量 (Shannon Capacity)}：
+                    \begin{itemize} \scriptsize
+                        \item 建“混淆图” $G$ (若混淆则连边)。
+                        \item 问题转化为求 $\alpha(G)$ (最大独立集)。
+                    \end{itemize}
+                    \item \textbf{理论}：Lovász $\vartheta$ 函数为此提供紧上界。
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    % 3. 减少垂直间距 (从 0.3cm 改为 0.1cm)
+    \vspace{0.1cm}
+    
+    % --- 底部总结 ---
+    \centering
+    \fcolorbox{blue}{white}{
+        \parbox{0.95\textwidth}{
+            % 4. 总结框内文字稍微小一点，确保不换行太多
+            \centering \scriptsize 
+            \textbf{Insight}：现实中的“兼容性 (Compatibility)”与“互不冲突”，
+            在数学上往往等价于图论中的\textbf{最大团}或\textbf{独立集}问题。
+        }
+    }
+\end{frame}
+
+\section{总结}
+
+\begin{frame}{全景回顾：精度与速度的权衡}
+    \footnotesize
+    最大团问题的求解历史，本质上是在\textbf{搜索空间剪枝}与\textbf{局部极值跳出}之间寻找平衡。
+
+    \vspace{0.1cm}
+
+    \begin{columns}[T]
+        % --- 左栏：精确算法 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{1. 精确算法 (Exact: B\&B)}
+                \textbf{代表}：MCQ, MaxCliqueDyn
+                \begin{itemize}
+                    \item \textbf{核心}：利用数学界（着色、MaxSAT）进行剪枝。
+                    \item \textbf{优势}：保证最优性 ($C^*$)。
+                    \item \textbf{劣势}：最坏复杂度 $O(3^{n/3})$，难以处理 $N > 4000$ 的稠密图。
+                \end{itemize}
+            \end{block}
+        \end{column}
+        
+        % --- 右栏：启发式算法 ---
+        \begin{column}{0.48\textwidth}
+            \begin{block}{2. 启发式 (Heuristic: LS)}
+                \textbf{代表}：NuMVC, FastStep
+                \begin{itemize}
+                    \item \textbf{核心}：利用扰动机制（Penalty, Swap）跳出局部最优。
+                    \item \textbf{优势}：能在巨大图上迅速找到高质量解。
+                    \item \textbf{劣势}：无最优性证明。
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.2cm}
+
+    \begin{alertblock}{3. 现代趋势：混合求解 (Hybrid Solving)}
+        现在的顶级求解器倾向于结合两者：
+        \begin{itemize}
+            \item 使用\textbf{启发式}快速找到一个大的 LB (Lower Bound)。
+            \item 将此 LB 注入\textbf{精确算法}作为初始界，大幅提升剪枝效率。
+        \end{itemize}
+    \end{alertblock}
+\end{frame}
+
+\begin{frame}{前沿展望：当组合优化遇上 AI}
+    \small
+    随着图神经网络 (GNN) 和深度强化学习 (DRL) 的兴起，MCP 研究正在进入新的范式。
+
+    \setlength{\textfloatsep}{0pt} 
+
+    \begin{columns}[T]
+        \begin{column}{0.6\textwidth}
+            \textbf{1. Learning to Branch / Prune}
+            \begin{itemize}
+                \item 传统 MCQ 使用贪心着色来排序分支。
+                \item \textbf{AI 思路}：训练 GNN 预测哪个节点最可能在最大团中，从而指导分支顺序。
+                \item \textit{优势：在特定分布的图上，比人工设计的 Heuristic 快数个数量级。}
+            \end{itemize}
+            
+            \vspace{0.2cm}
+            
+            \textbf{2. 连续优化的进阶 (SDP)}
+            \begin{itemize}
+                \item 除了 Motzkin-Straus，\textbf{半正定规划 (SDP)} 提供了更紧的界（Lovász Theta function $\vartheta(G)$）。
+                \item 这是一个凸松弛 (Convex Relaxation)，可以在多项式时间内求解。
+            \end{itemize}
+        \end{column}
+        
+        \begin{column}{0.35\textwidth}
+            \vspace{0.2cm}
+            \begin{beamerboxesrounded}[shadow=true]{Open Problems}
+                \centering \scriptsize
+                \begin{enumerate}
+                    \item \textbf{大规模稀疏图}：社交网络图的团挖掘 (Web-scale)。
+                    \item \textbf{端到端求解}：能否完全用神经网络替代搜索？(目前还很难)。
+                    \item \textbf{硬件加速}：利用 GPU/FPGA 并行化 Bitset 运算。
+                \end{enumerate}
+            \end{beamerboxesrounded}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.3cm}
+    \centering
+    \footnotesize \textit{The journey from classical algorithms to AI-driven optimization continues.}
+\end{frame}
+
+
+\begin{frame}
+    \begin{center}
+        {\Huge\calligra Thanks!}
+    \end{center}
+\end{frame}
+
+\end{document}
